@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>大区安全看板 · 有限空间作业</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --primary: #1565C0;
+    --primary-light: #42A5F5;
+    --primary-bg: #e8f0fe;
+    --bg: #F5F7FA;
+    --white: #FFFFFF;
+    --text: #212121;
+    --text-secondary: #757575;
+    --danger: #D32F2F;
+    --warning: #F57C00;
+    --success: #388E3C;
+    --radius: 12px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .top-bar {
+    background: linear-gradient(135deg, var(--primary) 0%, #0D47A1 100%);
+    color: var(--white);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .top-bar a {
+    color: var(--white);
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .top-bar h1 {
+    font-size: 18px;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .container {
+    padding: 16px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  /* Region Selector */
+  .region-selector {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .region-selector label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .region-selector select {
+    width: 100%;
+    padding: 10px 36px 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--white);
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23757575' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    color: var(--text);
+  }
+  .region-selector select:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(66,165,245,0.15);
+  }
+
+  /* Data Import Area */
+  .data-actions {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .data-actions-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .data-actions .import-time {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    font-family: inherit;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .btn:active { opacity: 0.7; }
+  .btn-primary { background: var(--primary); color: var(--white); }
+  .btn-outline { background: var(--white); color: var(--primary); border: 1px solid var(--primary); }
+  .btn-full { width: 100%; }
+  .btn-sm { height: 36px; padding: 0 12px; font-size: 13px; }
+
+  /* Module A: Monthly Overview */
+  .module-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding-left: 2px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  @media (min-width: 640px) {
+    .stats-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+  .stat-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1.2;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  /* Module B: Chart */
+  .chart-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* Module C: Red Alert */
+  .alert-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .alert-item {
+    border-left: 4px solid var(--danger);
+    background: #FFF3E0;
+    padding: 12px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 10px;
+  }
+  .alert-item:last-child { margin-bottom: 0; }
+  .alert-item-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--danger);
+    margin-bottom: 4px;
+  }
+  .alert-item-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .alert-item-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #FFCDD2;
+    color: var(--danger);
+  }
+  .no-alert {
+    text-align: center;
+    padding: 24px;
+    color: var(--success);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* Module D: Recent Records */
+  .record-list {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .record-entry {
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .record-entry:last-child { border-bottom: none; }
+  .record-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .record-entry-name {
+    font-size: 15px;
+    font-weight: 600;
+    flex: 1;
+    margin-right: 8px;
+  }
+  .status-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .status-tag.pending { background: #FFF3E0; color: var(--warning); }
+  .status-tag.project-approved { background: #E3F2FD; color: var(--primary); }
+  .status-tag.region-approved { background: #E8F5E9; color: var(--success); }
+  .status-tag.completed { background: #F5F5F5; color: #9E9E9E; }
+  .status-tag.rejected { background: #FFEBEE; color: var(--danger); }
+  .record-entry-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .record-entry-time {
+    font-size: 12px;
+    color: #9E9E9E;
+    margin-top: 2px;
+  }
+  .load-more-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background: none;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--primary);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .load-more-btn:active { background: #f5f5f5; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--text-secondary);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+  .empty-state .text { font-size: 14px; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 20px 16px 30px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .footer .brand {
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.75);
+    color: var(--white);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* PC responsive */
+  @media (min-width: 768px) {
+    .container {
+      padding: 24px 20px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <a href="index.html">‹ 返回</a>
+  <h1>大区安全看板</h1>
+</div>
+
+<div class="container">
+
+  <!-- Region Selector -->
+  <div class="region-selector">
+    <label>选择大区</label>
+    <select id="regionFilter" onchange="refreshAll()">
+      <option value="">全部大区</option>
+      <option>重庆</option>
+      <option>成都</option>
+      <option>山东</option>
+      <option>华南</option>
+      <option>浙闽</option>
+      <option>河南</option>
+      <option>亿达</option>
+      <option>东北</option>
+      <option>华中</option>
+      <option>华北</option>
+      <option>西北</option>
+      <option>沪苏</option>
+      <option>合宁</option>
+    </select>
+  </div>
+
+  <!-- Data Import Area -->
+  <div class="data-actions">
+    <div class="data-actions-row">
+      <button class="btn btn-primary" onclick="document.getElementById('importFile').click()">📥 导入项目数据</button>
+      <button class="btn btn-outline" onclick="exportDashboardData()">📤 导出看板数据</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importDashboardData(event)">
+    </div>
+    <div class="import-time" id="lastImportTime"></div>
+  </div>
+
+  <!-- Module A: Monthly Overview -->
+  <div class="module-title">📊 本月总览</div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num" id="statTotal">0</div>
+      <div class="stat-label">审批总次数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statApproved">0</div>
+      <div class="stat-label">审批通过</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statRejected">0</div>
+      <div class="stat-label">审批驳回</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statCheckin">0</div>
+      <div class="stat-label">进场确认</div>
+    </div>
+  </div>
+
+  <!-- Module B: Project Approval Ranking -->
+  <div class="chart-card">
+    <div class="module-title">📈 项目审批排名</div>
+    <div class="chart-wrapper">
+      <canvas id="approvalChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Module C: Red Alert -->
+  <div class="alert-card">
+    <div class="module-title">🚨 红色预警</div>
+    <div id="alertList"></div>
+  </div>
+
+  <!-- Module D: Recent Approval Records -->
+  <div class="record-list">
+    <div class="module-title">📋 最近审批记录</div>
+    <div id="recentRecords"></div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span class="brand">龙湖智创生活</span> C4安全管理<br>
+  依据 GB 46768-2025《有限空间作业安全技术规范》
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  var RECORDS_KEY = 'confined_space_records';
+  var CHECKINS_KEY = 'confined_space_checkins';
+  var MAX_RECORDS_DISPLAY = 50;
+
+  var chartInstance = null;
+  var currentRecordOffset = 0;
+
+  // ===== Data Layer =====
+  function loadRecords() {
+    try { return JSON.parse(localStorage.getItem(RECORDS_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+  function loadCheckins() {
+    try { return JSON.parse(localStorage.getItem(CHECKINS_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+
+  function getSelectedRegion() {
+    return document.getElementById('regionFilter').value;
+  }
+
+  function formatDate(isoStr) {
+    if (!isoStr) return '-';
+    var d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    var h = String(d.getHours()).padStart(2, '0');
+    var min = String(d.getMinutes()).padStart(2, '0');
+    return y + '-' + m + '-' + day + ' ' + h + ':' + min;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2000);
+  }
+
+  function statusClass(status) {
+    if (status === '待项目总审批') return 'pending';
+    if (status === '项目总已批/待大区审批') return 'project-approved';
+    if (status === '大区已批/作业进行中') return 'region-approved';
+    if (status === '作业完成') return 'completed';
+    if (status === '已驳回') return 'rejected';
+    return '';
+  }
+
+  function getMonthRange() {
+    var now = new Date();
+    var start = new Date(now.getFullYear(), now.getMonth(), 1);
+    var end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    return { start: start, end: end };
+  }
+
+  // ===== Module A: Monthly Overview =====
+  function renderStats() {
+    var range = getMonthRange();
+    var region = getSelectedRegion();
+    var records = loadRecords();
+    var checkins = loadCheckins();
+
+    // Filter by region
+    var filteredRecords = records;
+    var filteredCheckins = checkins;
+    if (region) {
+      filteredRecords = records.filter(function(r) { return r.region === region; });
+      filteredCheckins = checkins.filter(function(c) { return c.region === region; });
+    }
+
+    // Filter by month
+    var monthRecords = filteredRecords.filter(function(r) {
+      var d = new Date(r.createdAt);
+      return d >= range.start && d <= range.end;
+    });
+    var monthCheckins = filteredCheckins.filter(function(c) {
+      var d = new Date(c.checkinTime);
+      return d >= range.start && d <= range.end;
+    });
+
+    var total = monthRecords.length;
+    var approved = monthRecords.filter(function(r) {
+      return r.status === '大区已批/作业进行中' || r.status === '作业完成';
+    }).length;
+    var rejected = monthRecords.filter(function(r) {
+      return r.status === '已驳回';
+    }).length;
+    var checkinCount = monthCheckins.length;
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statApproved').textContent = approved;
+    document.getElementById('statRejected').textContent = rejected;
+    document.getElementById('statCheckin').textContent = checkinCount;
+  }
+
+  // ===== Module B: Project Approval Ranking =====
+  function renderChart() {
+    var region = getSelectedRegion();
+    var records = loadRecords();
+    var checkins = loadCheckins();
+
+    var filteredRecords = records;
+    var filteredCheckins = checkins;
+    if (region) {
+      filteredRecords = records.filter(function(r) { return r.region === region; });
+      filteredCheckins = checkins.filter(function(c) { return c.region === region; });
+    }
+
+    // Count approvals by project name
+    var projectCounts = {};
+    filteredRecords.forEach(function(r) {
+      var name = r.projectName || '未知项目';
+      if (!projectCounts[name]) {
+        projectCounts[name] = { count: 0, region: r.region };
+      }
+      projectCounts[name].count++;
+    });
+
+    // Also include projects from checkins that have 0 approvals (red alert)
+    filteredCheckins.forEach(function(c) {
+      var name = c.projectName || '未知项目';
+      if (!projectCounts[name]) {
+        projectCounts[name] = { count: 0, region: c.region };
+      }
+    });
+
+    // Sort by count descending
+    var projectList = Object.keys(projectCounts).map(function(name) {
+      return { name: name, count: projectCounts[name].count, region: projectCounts[name].region };
+    });
+    projectList.sort(function(a, b) { return b.count - a.count; });
+
+    // Labels and data
+    var labels = projectList.map(function(p) { return p.name; });
+    var data = projectList.map(function(p) { return p.count; });
+    var bgColors = projectList.map(function(p) {
+      return p.count === 0 ? 'rgba(211,47,47,0.7)' : 'rgba(21,101,192,0.7)';
+    });
+    var borderColors = projectList.map(function(p) {
+      return p.count === 0 ? 'rgba(211,47,47,1)' : 'rgba(21,101,192,1)';
+    });
+
+    // Destroy previous chart
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+
+    var ctx = document.getElementById('approvalChart').getContext('2d');
+    var chartHeight = Math.max(200, projectList.length * 36);
+    document.getElementById('approvalChart').parentElement.style.height = chartHeight + 'px';
+    document.getElementById('approvalChart').style.height = chartHeight + 'px';
+
+    if (projectList.length === 0) {
+      // No data
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['暂无数据'],
+          datasets: [{
+            label: '审批次数',
+            data: [0],
+            backgroundColor: ['rgba(189,189,189,0.3)'],
+            borderColor: ['rgba(189,189,189,1)'],
+            borderWidth: 1
+          }]
+        },
+        options: getChartOptions()
+      });
+      return;
+    }
+
+    chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '审批次数',
+          data: data,
+          backgroundColor: bgColors,
+          borderColor: borderColors,
+          borderWidth: 1,
+          barThickness: 24
+        }]
+      },
+      options: getChartOptions()
+    });
+  }
+
+  function getChartOptions() {
+    return {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              var count = context.parsed.x;
+              if (count === 0) {
+                return '⚠ 无审批记录（需关注）';
+              }
+              return '审批次数：' + count;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, font: { size: 12 } },
+          title: { display: true, text: '审批次数', font: { size: 12 } }
+        },
+        y: {
+          ticks: { font: { size: 12 } }
+        }
+      }
+    };
+  }
+
+  // ===== Module C: Red Alert =====
+  function renderAlerts() {
+    var region = getSelectedRegion();
+    var records = loadRecords();
+    var checkins = loadCheckins();
+
+    if (region) {
+      records = records.filter(function(r) { return r.region === region; });
+      checkins = checkins.filter(function(c) { return c.region === region; });
+    }
+
+    // Find projects that have check-in records but no approval records
+    var projectNamesWithApproval = {};
+    records.forEach(function(r) {
+      projectNamesWithApproval[r.projectName] = true;
+    });
+
+    var alertItems = [];
+    var seenProjects = {};
+    checkins.forEach(function(c) {
+      if (!projectNamesWithApproval[c.projectName] && !seenProjects[c.projectName]) {
+        seenProjects[c.projectName] = true;
+        alertItems.push({
+          projectName: c.projectName,
+          region: c.region,
+          checkinTime: c.checkinTime,
+          personName: c.personName
+        });
+      }
+    });
+
+    var container = document.getElementById('alertList');
+    if (alertItems.length === 0) {
+      container.innerHTML = '<div class="no-alert">暂无预警 ✅</div>';
+      return;
+    }
+
+    var html = '';
+    alertItems.forEach(function(item) {
+      html += '<div class="alert-item">' +
+        '<div class="alert-item-title">⚠ ' + escapeHtml(item.projectName) + '</div>' +
+        '<div class="alert-item-meta">' +
+          '<span class="alert-item-tag">' + escapeHtml(item.region) + '</span> ' +
+          '有进场确认但无审批记录<br>' +
+          '进场人：' + escapeHtml(item.personName) + ' · ' + formatDate(item.checkinTime) +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  // ===== Module D: Recent Records =====
+  function renderRecentRecords(append) {
+    var region = getSelectedRegion();
+    var records = loadRecords();
+
+    if (region) {
+      records = records.filter(function(r) { return r.region === region; });
+    }
+
+    // Sort by createdAt desc
+    records.sort(function(a, b) {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    var container = document.getElementById('recentRecords');
+    if (!append) {
+      currentRecordOffset = 0;
+      container.innerHTML = '';
+    }
+
+    var start = currentRecordOffset;
+    var end = Math.min(start + MAX_RECORDS_DISPLAY, records.length);
+    var subset = records.slice(start, end);
+
+    if (records.length === 0 && !append) {
+      container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div class="text">暂无审批记录</div></div>';
+      return;
+    }
+
+    var html = '';
+    subset.forEach(function(r) {
+      var workType = r.workContent || r.location || '-';
+      var applicant = r.applicantName || '-';
+      html += '<div class="record-entry">' +
+        '<div class="record-entry-header">' +
+          '<span class="record-entry-name">' + escapeHtml(r.projectName) + '</span>' +
+          '<span class="status-tag ' + statusClass(r.status) + '">' + escapeHtml(r.status) + '</span>' +
+        '</div>' +
+        '<div class="record-entry-meta">' +
+          escapeHtml(workType) + ' | ' + escapeHtml(applicant) +
+        '</div>' +
+        '<div class="record-entry-time">' + formatDate(r.createdAt) + '</div>' +
+      '</div>';
+    });
+
+    if (append) {
+      container.innerHTML += html;
+    } else {
+      container.innerHTML = html;
+    }
+
+    currentRecordOffset = end;
+
+    // Add load more button if there are more
+    var existingBtn = container.querySelector('.load-more-btn');
+    if (existingBtn) existingBtn.remove();
+
+    if (currentRecordOffset < records.length) {
+      var btn = document.createElement('button');
+      btn.className = 'load-more-btn';
+      btn.textContent = '加载更多（剩余' + (records.length - currentRecordOffset) + '条）';
+      btn.onclick = function() {
+        renderRecentRecords(true);
+      };
+      container.appendChild(btn);
+    }
+  }
+
+  // ===== Data Import/Export =====
+  window.importDashboardData = function(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        var importedRecords = data.confined_space_records || [];
+        var importedCheckins = data.confined_space_checkins || [];
+
+        // Merge records (same ID = overwrite)
+        var existingRecords = loadRecords();
+        var recordMap = {};
+        existingRecords.forEach(function(r) { recordMap[r.id] = r; });
+        importedRecords.forEach(function(r) { recordMap[r.id] = r; });
+        localStorage.setItem(RECORDS_KEY, JSON.stringify(Object.values(recordMap)));
+
+        // Merge checkins
+        var existingCheckins = loadCheckins();
+        var checkinMap = {};
+        existingCheckins.forEach(function(c) { checkinMap[c.id] = c; });
+        importedCheckins.forEach(function(c) { checkinMap[c.id] = c; });
+        localStorage.setItem(CHECKINS_KEY, JSON.stringify(Object.values(checkinMap)));
+
+        // Update last import time
+        var now = new Date();
+        var importTimeStr = now.toISOString();
+        localStorage.setItem('confined_space_last_import', importTimeStr);
+        document.getElementById('lastImportTime').textContent =
+          '最近导入：' + formatDate(importTimeStr);
+
+        showToast('数据导入成功（' + importedRecords.length + '条审批，' + importedCheckins.length + '条进场）');
+        refreshAll();
+      } catch(err) {
+        showToast('导入失败：文件格式不正确');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  window.exportDashboardData = function() {
+    var records = loadRecords();
+    var checkins = loadCheckins();
+    var data = {
+      confined_space_records: records,
+      confined_space_checkins: checkins,
+      exportTime: new Date().toISOString()
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '看板数据_' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('数据已导出');
+  };
+
+  // ===== Refresh All Modules =====
+  window.refreshAll = function() {
+    renderStats();
+    renderChart();
+    renderAlerts();
+    renderRecentRecords(false);
+  };
+
+  // ===== Listen for storage changes =====
+  window.addEventListener('storage', function(e) {
+    if (e.key === RECORDS_KEY || e.key === CHECKINS_KEY) {
+      refreshAll();
+    }
+  });
+
+  // ===== Init =====
+  refreshAll();
+
+  // Show last import time from localStorage if stored
+  var lastImport = localStorage.getItem('confined_space_last_import');
+  if (lastImport) {
+    document.getElementById('lastImportTime').textContent = '最近导入：' + formatDate(lastImport);
+  }
+})();
+</script>
+</body>
+</html>
