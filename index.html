@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>智创生活安全管理 · 有限空间作业风险管控</title>
+<style>
+  :root {
+    --primary: #1565C0;
+    --primary-light: #42A5F5;
+    --primary-bg: #e8f0fe;
+    --bg: #F5F7FA;
+    --white: #FFFFFF;
+    --text: #212121;
+    --text-secondary: #757575;
+    --danger: #D32F2F;
+    --warning: #F57C00;
+    --success: #388E3C;
+    --radius: 12px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .header {
+    background: linear-gradient(135deg, var(--primary) 0%, #0D47A1 100%);
+    color: var(--white);
+    padding: 40px 20px 30px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .header .subtitle {
+    font-size: 13px;
+    opacity: 0.8;
+    font-weight: 400;
+  }
+  .container {
+    flex: 1;
+    padding: 20px 16px;
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    text-decoration: none;
+    color: var(--text);
+    border: 2px solid transparent;
+  }
+  .card:active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+  .card:hover {
+    border-color: var(--primary-light);
+  }
+  .card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+  .card-icon.blue { background: #e3f2fd; }
+  .card-icon.green { background: #e8f5e9; }
+  .card-icon.orange { background: #fff3e0; }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .card-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+  .card-arrow {
+    color: #BDBDBD;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .footer {
+    text-align: center;
+    padding: 20px 16px 30px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .footer .brand {
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .quick-stats {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .quick-stats-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .stats-row {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+  }
+  .stat-item { flex: 1; }
+  .stat-num {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🛡️ 智创生活安全管理</h1>
+  <div class="subtitle">有限空间作业风险管控</div>
+</div>
+
+<div class="container">
+  <div class="quick-stats">
+    <div class="quick-stats-title">本月数据概览</div>
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-num" id="statPending">0</div>
+        <div class="stat-label">待审批</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="statActive">0</div>
+        <div class="stat-label">进行中</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="statDone">0</div>
+        <div class="stat-label">已完成</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="statCheckin">0</div>
+        <div class="stat-label">进场确认</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">作业工具</div>
+
+  <a class="card" href="approval.html">
+    <div class="card-icon blue">📋</div>
+    <div class="card-body">
+      <div class="card-title">有限空间作业审批</div>
+      <div class="card-desc">作业申请、审批处理、完成确认、审批台账</div>
+    </div>
+    <div class="card-arrow">›</div>
+  </a>
+
+  <a class="card" href="checkin.html">
+    <div class="card-icon green">🛡️</div>
+    <div class="card-body">
+      <div class="card-title">进场确认卡</div>
+      <div class="card-desc">安全告知、进场登记、可打印版</div>
+    </div>
+    <div class="card-arrow">›</div>
+  </a>
+
+  <a class="card" href="dashboard.html">
+    <div class="card-icon orange">📊</div>
+    <div class="card-body">
+      <div class="card-title">大区安全看板</div>
+      <div class="card-desc">审批统计、项目排名、红色预警</div>
+    </div>
+    <div class="card-arrow">›</div>
+  </a>
+</div>
+
+<div class="footer">
+  <span class="brand">龙湖智创生活</span> C4安全管理<br>
+  依据 GB 46768-2025《有限空间作业安全技术规范》
+</div>
+
+<script>
+(function() {
+  function getMonthRange() {
+    var now = new Date();
+    var start = new Date(now.getFullYear(), now.getMonth(), 1);
+    var end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    return { start: start, end: end };
+  }
+
+  function loadStats() {
+    var range = getMonthRange();
+    var records = JSON.parse(localStorage.getItem('confined_space_records') || '[]');
+    var checkins = JSON.parse(localStorage.getItem('confined_space_checkins') || '[]');
+
+    var monthRecords = records.filter(function(r) {
+      var d = new Date(r.createdAt);
+      return d >= range.start && d <= range.end;
+    });
+
+    var pending = monthRecords.filter(function(r) {
+      return r.status === '待项目总审批' || r.status === '项目总已批/待大区审批';
+    }).length;
+
+    var active = monthRecords.filter(function(r) {
+      return r.status === '大区已批/作业进行中';
+    }).length;
+
+    var done = monthRecords.filter(function(r) {
+      return r.status === '作业完成';
+    }).length;
+
+    var monthCheckins = checkins.filter(function(c) {
+      var d = new Date(c.checkinTime);
+      return d >= range.start && d <= range.end;
+    }).length;
+
+    document.getElementById('statPending').textContent = pending;
+    document.getElementById('statActive').textContent = active;
+    document.getElementById('statDone').textContent = done;
+    document.getElementById('statCheckin').textContent = monthCheckins;
+  }
+
+  loadStats();
+
+  // Listen for storage changes from other tabs
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'confined_space_records' || e.key === 'confined_space_checkins') {
+      loadStats();
+    }
+  });
+})();
+</script>
+</body>
+</html>
