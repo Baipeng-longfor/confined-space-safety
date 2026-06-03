@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>有限空间作业审批</title>
+<style>
+  :root {
+    --primary: #1565C0;
+    --primary-light: #42A5F5;
+    --primary-bg: #e8f0fe;
+    --bg: #F5F7FA;
+    --white: #FFFFFF;
+    --text: #212121;
+    --text-secondary: #757575;
+    --danger: #D32F2F;
+    --warning: #F57C00;
+    --success: #388E3C;
+    --radius: 12px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+  .top-bar {
+    background: linear-gradient(135deg, var(--primary) 0%, #0D47A1 100%);
+    color: var(--white);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .top-bar a {
+    color: var(--white);
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .top-bar h1 {
+    font-size: 18px;
+    font-weight: 600;
+    flex: 1;
+  }
+  .tab-bar {
+    background: var(--white);
+    display: flex;
+    border-bottom: 1px solid #e0e0e0;
+    position: sticky;
+    top: 48px;
+    z-index: 99;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 6px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+    font-weight: 500;
+  }
+  .tab-btn.active {
+    color: var(--primary);
+    font-weight: 600;
+  }
+  .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    right: 20%;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+  .tab-content {
+    display: none;
+    padding: 16px;
+  }
+  .tab-content.active { display: block; }
+
+  /* Form styles */
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .form-group label .required {
+    color: var(--danger);
+    margin-left: 2px;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--white);
+    color: var(--text);
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .form-group select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23757575' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px rgba(66,165,245,0.15);
+  }
+  .form-group textarea { resize: vertical; min-height: 72px; }
+
+  .radio-group {
+    display: flex;
+    gap: 20px;
+    margin-top: 4px;
+  }
+  .radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 400;
+    cursor: pointer;
+  }
+  .radio-group input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    height: 44px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    font-family: inherit;
+    gap: 6px;
+  }
+  .btn:active { opacity: 0.7; }
+  .btn-primary { background: var(--primary); color: var(--white); }
+  .btn-success { background: var(--success); color: var(--white); }
+  .btn-danger { background: var(--danger); color: var(--white); }
+  .btn-outline { background: var(--white); color: var(--primary); border: 1px solid var(--primary); }
+  .btn-full { width: 100%; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Card list */
+  .record-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .record-card:active { transform: scale(0.99); }
+  .record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .record-title {
+    font-size: 16px;
+    font-weight: 600;
+    flex: 1;
+    margin-right: 8px;
+  }
+  .status-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .status-tag.pending { background: #FFF3E0; color: var(--warning); }
+  .status-tag.project-approved { background: #E3F2FD; color: var(--primary); }
+  .status-tag.region-approved { background: #E8F5E9; color: var(--success); }
+  .status-tag.completed { background: #F5F5F5; color: #9E9E9E; }
+  .status-tag.rejected { background: #FFEBEE; color: var(--danger); }
+  .record-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* Detail page */
+  .detail-page {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg);
+    z-index: 200;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .detail-page.show { display: block; }
+  .detail-top-bar {
+    background: var(--white);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #e0e0e0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .detail-top-bar .back-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--text);
+    padding: 4px;
+  }
+  .detail-top-bar h2 {
+    font-size: 17px;
+    flex: 1;
+  }
+  .detail-body { padding: 16px; }
+
+  .info-section {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .info-section h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--primary);
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .info-row {
+    display: flex;
+    padding: 6px 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .info-row .label {
+    color: var(--text-secondary);
+    width: 100px;
+    flex-shrink: 0;
+  }
+  .info-row .value {
+    flex: 1;
+    color: var(--text);
+    word-break: break-all;
+  }
+
+  /* Checklist */
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--success);
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+  .checklist-item .check-text { flex: 1; }
+
+  /* Approval flow */
+  .approval-flow {
+    margin-top: 12px;
+  }
+  .flow-step {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    position: relative;
+  }
+  .flow-step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 34px;
+    bottom: -2px;
+    width: 2px;
+    background: #e0e0e0;
+  }
+  .flow-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--white);
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .flow-dot.done { background: var(--success); }
+  .flow-dot.current { background: var(--warning); }
+  .flow-dot.rejected { background: var(--danger); }
+  .flow-info { flex: 1; }
+  .flow-info .flow-title { font-size: 14px; font-weight: 600; }
+  .flow-info .flow-detail { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* Filters */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .filter-bar select {
+    padding: 8px 28px 8px 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--white);
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23757575' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+
+  /* Bottom action bar */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    padding: 12px 16px;
+    display: flex;
+    gap: 10px;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+    z-index: 50;
+  }
+  .bottom-bar .btn { flex: 1; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state .text { font-size: 14px; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.75);
+    color: var(--white);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-box h3 {
+    font-size: 17px;
+    margin-bottom: 16px;
+  }
+
+  /* Rejection reason */
+  .reject-reason {
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <a href="index.html">‹ 返回</a>
+  <h1>有限空间作业审批</h1>
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="apply">作业申请</button>
+  <button class="tab-btn" data-tab="approve">审批处理</button>
+  <button class="tab-btn" data-tab="complete">完成确认</button>
+  <button class="tab-btn" data-tab="ledger">审批台账</button>
+</div>
+
+<!-- Tab 1: 作业申请 -->
+<div class="tab-content active" id="tab-apply">
+  <form id="applyForm">
+    <div class="form-group">
+      <label>大区名称 <span class="required">*</span></label>
+      <select id="f_region" required>
+        <option value="">请选择大区</option>
+        <option>重庆</option>
+        <option>成都</option>
+        <option>山东</option>
+        <option>华南</option>
+        <option>浙闽</option>
+        <option>河南</option>
+        <option>亿达</option>
+        <option>东北</option>
+        <option>华中</option>
+        <option>华北</option>
+        <option>西北</option>
+        <option>沪苏</option>
+        <option>合宁</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>项目名称 <span class="required">*</span></label>
+      <input type="text" id="f_projectName" placeholder="请输入项目名称" required>
+    </div>
+    <div class="form-group">
+      <label>作业地点 <span class="required">*</span></label>
+      <select id="f_location" required>
+        <option value="">请选择作业地点</option>
+        <option>水箱间</option>
+        <option>化粪池</option>
+        <option>集水坑</option>
+        <option>管道井</option>
+        <option>电梯井道</option>
+        <option>强弱电井</option>
+        <option>地下室通风井</option>
+        <option>热力井</option>
+        <option>其他</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>作业内容 <span class="required">*</span></label>
+      <textarea id="f_workContent" placeholder="简述作业内容" required></textarea>
+    </div>
+    <div class="form-group">
+      <label>作业开始时间 <span class="required">*</span></label>
+      <input type="datetime-local" id="f_startTime" required>
+    </div>
+    <div class="form-group">
+      <label>预计结束时间 <span class="required">*</span></label>
+      <input type="datetime-local" id="f_endTime" required>
+    </div>
+    <div class="form-group">
+      <label>作业人数 <span class="required">*</span></label>
+      <input type="number" id="f_workerCount" min="1" value="1" required>
+    </div>
+    <div class="form-group">
+      <label>承包方类型 <span class="required">*</span></label>
+      <div class="radio-group">
+        <label><input type="radio" name="contractorType" value="自管" checked> 自管</label>
+        <label><input type="radio" name="contractorType" value="外委"> 外委</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>承包方名称 <span class="required">*</span></label>
+      <input type="text" id="f_contractorName" placeholder="请输入承包方名称" required>
+    </div>
+    <div class="form-group">
+      <label>申请人姓名 <span class="required">*</span></label>
+      <input type="text" id="f_applicantName" placeholder="请输入姓名" required>
+    </div>
+    <div class="form-group">
+      <label>申请人手机号 <span class="required">*</span></label>
+      <input type="tel" id="f_applicantPhone" placeholder="请输入手机号" required>
+    </div>
+    <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">提交申请</button>
+  </form>
+</div>
+
+<!-- Tab 2: 审批处理 -->
+<div class="tab-content" id="tab-approve">
+  <div id="approveList"></div>
+</div>
+
+<!-- Tab 3: 完成确认 -->
+<div class="tab-content" id="tab-complete">
+  <div id="completeList"></div>
+</div>
+
+<!-- Tab 4: 审批台账 -->
+<div class="tab-content" id="tab-ledger">
+  <div class="filter-bar">
+    <select id="filterRegion">
+      <option value="">全部大区</option>
+      <option>华北大区</option>
+      <option>沪苏大区</option>
+      <option>浙闽大区</option>
+      <option>蜀渝大区</option>
+      <option>深广大区</option>
+      <option>华中大区</option>
+      <option>西北大区</option>
+      <option>东北大区</option>
+      <option>山东大区</option>
+      <option>合宁大区</option>
+      <option>湖南大区</option>
+      <option>贵州大区</option>
+      <option>云南大区</option>
+    </select>
+    <select id="filterStatus">
+      <option value="">全部状态</option>
+      <option>待项目总审批</option>
+      <option>项目总已批/待大区审批</option>
+      <option>大区已批/作业进行中</option>
+      <option>作业完成</option>
+      <option>已驳回</option>
+    </select>
+  </div>
+  <div id="ledgerList"></div>
+</div>
+
+<!-- Bottom action bar -->
+<div class="bottom-bar">
+  <button class="btn btn-outline" onclick="exportData()">📤 导出数据</button>
+  <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📥 导入数据</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+</div>
+
+<!-- Detail Page: Approval -->
+<div class="detail-page" id="approvalDetail">
+  <div class="detail-top-bar">
+    <button class="back-btn" onclick="closeDetail('approvalDetail')">‹</button>
+    <h2>审批详情</h2>
+  </div>
+  <div class="detail-body" id="approvalDetailBody"></div>
+</div>
+
+<!-- Detail Page: Completion -->
+<div class="detail-page" id="completionDetail">
+  <div class="detail-top-bar">
+    <button class="back-btn" onclick="closeDetail('completionDetail')">‹</button>
+    <h2>完成确认</h2>
+  </div>
+  <div class="detail-body" id="completionDetailBody"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Modal for reject reason -->
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal-box">
+    <h3>驳回原因</h3>
+    <div class="form-group">
+      <textarea id="rejectReason" placeholder="请输入驳回原因" style="min-height:80px;"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" onclick="closeRejectModal()" style="flex:1;">取消</button>
+      <button class="btn btn-danger" onclick="confirmReject()" style="flex:1;">确认驳回</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===== Data Layer =====
+  var STORAGE_KEY = 'confined_space_records';
+
+  function loadRecords() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveRecords(records) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  }
+
+  function generateId(prefix) {
+    var now = new Date();
+    var dateStr = now.getFullYear().toString() +
+      String(now.getMonth()+1).padStart(2,'0') +
+      String(now.getDate()).padStart(2,'0');
+    var records = loadRecords();
+    var todayCount = records.filter(function(r) {
+      return r.id.indexOf(prefix + '-' + dateStr) === 0;
+    }).length;
+    var seq = String(todayCount + 1).padStart(3, '0');
+    return prefix + '-' + dateStr + '-' + seq;
+  }
+
+  function formatDate(isoStr) {
+    if (!isoStr) return '-';
+    var d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    var h = String(d.getHours()).padStart(2,'0');
+    var min = String(d.getMinutes()).padStart(2,'0');
+    return y + '-' + m + '-' + day + ' ' + h + ':' + min;
+  }
+
+  function statusClass(status) {
+    if (status === '待项目总审批') return 'pending';
+    if (status === '项目总已批/待大区审批') return 'project-approved';
+    if (status === '大区已批/作业进行中') return 'region-approved';
+    if (status === '作业完成') return 'completed';
+    if (status === '已驳回') return 'rejected';
+    return '';
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2000);
+  }
+
+  // ===== Tab Switching =====
+  var tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      tabBtns.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'approve') renderApproveList();
+      if (btn.dataset.tab === 'complete') renderCompleteList();
+      if (btn.dataset.tab === 'ledger') renderLedger();
+    });
+  });
+
+  // ===== Tab 1: 作业申请 =====
+  document.getElementById('applyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var region = document.getElementById('f_region').value;
+    var projectName = document.getElementById('f_projectName').value.trim();
+    var location = document.getElementById('f_location').value;
+    var workContent = document.getElementById('f_workContent').value.trim();
+    var startTime = document.getElementById('f_startTime').value;
+    var endTime = document.getElementById('f_endTime').value;
+    var workerCount = parseInt(document.getElementById('f_workerCount').value) || 1;
+    var contractorType = document.querySelector('input[name="contractorType"]:checked').value;
+    var contractorName = document.getElementById('f_contractorName').value.trim();
+    var applicantName = document.getElementById('f_applicantName').value.trim();
+    var applicantPhone = document.getElementById('f_applicantPhone').value.trim();
+
+    if (!region || !projectName || !location || !workContent || !startTime || !endTime || !contractorName || !applicantName || !applicantPhone) {
+      showToast('请填写所有必填项');
+      return;
+    }
+
+    if (new Date(startTime) >= new Date(endTime)) {
+      showToast('结束时间必须晚于开始时间');
+      return;
+    }
+
+    if (!/^1\d{10}$/.test(applicantPhone)) {
+      showToast('请输入正确的手机号');
+      return;
+    }
+
+    var record = {
+      id: generateId('CS'),
+      createdAt: new Date().toISOString(),
+      region: region,
+      projectName: projectName,
+      location: location,
+      workContent: workContent,
+      startTime: startTime,
+      endTime: endTime,
+      workerCount: workerCount,
+      contractorType: contractorType,
+      contractorName: contractorName,
+      applicantName: applicantName,
+      applicantPhone: applicantPhone,
+      checklist: [false, false, false, false, false, false, false],
+      status: '待项目总审批',
+      approvals: [],
+      completion: null
+    };
+
+    var records = loadRecords();
+    records.push(record);
+    saveRecords(records);
+
+    showToast('申请已提交');
+    document.getElementById('applyForm').reset();
+    document.getElementById('f_workerCount').value = 1;
+  });
+
+  // ===== Tab 2: 审批处理 =====
+  function renderApproveList() {
+    var records = loadRecords();
+    var pending = records.filter(function(r) {
+      return r.status === '待项目总审批' || r.status === '项目总已批/待大区审批';
+    });
+    var container = document.getElementById('approveList');
+
+    if (pending.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="icon">✅</div><div class="text">暂无待审批记录</div></div>';
+      return;
+    }
+
+    var html = '';
+    pending.forEach(function(r) {
+      html += '<div class="record-card" onclick="openApprovalDetail(\'' + r.id + '\')">' +
+        '<div class="record-header">' +
+          '<div class="record-title">' + escapeHtml(r.projectName) + '</div>' +
+          '<span class="status-tag ' + statusClass(r.status) + '">' + r.status + '</span>' +
+        '</div>' +
+        '<div class="record-meta">' +
+          '作业地点：' + escapeHtml(r.location) + '<br>' +
+          '申请人：' + escapeHtml(r.applicantName) + ' · ' + formatDate(r.createdAt) +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  window.openApprovalDetail = function(id) {
+    var records = loadRecords();
+    var r = records.find(function(rec) { return rec.id === id; });
+    if (!r) return;
+
+    var isProjectPending = r.status === '待项目总审批';
+    var isRegionPending = r.status === '项目总已批/待大区审批';
+    var canApprove = isProjectPending || isRegionPending;
+
+    var checklistLabels = [
+      '已完成气体检测（O₂/H₂S/CO合格）',
+      '已完成通风（自然通风≥30分钟或机械通风）',
+      '防护用品已配备到位（呼吸器/安全绳/安全帽）',
+      '监护人已到位且全程不离场',
+      '作业区域已封闭隔离、设警示标志',
+      '应急预案已交底（全员签字确认）',
+      '通讯联络已确认畅通'
+    ];
+
+    var approvalLevel = isProjectPending ? '项目总' : '大区安全负责人';
+    var approvalTitle = isProjectPending ? '项目总经理' : '大区安全负责人';
+
+    var html = '';
+
+    // Application info
+    html += '<div class="info-section"><h3>申请信息</h3>' +
+      '<div class="info-row"><span class="label">记录编号</span><span class="value">' + escapeHtml(r.id) + '</span></div>' +
+      '<div class="info-row"><span class="label">大区</span><span class="value">' + escapeHtml(r.region) + '</span></div>' +
+      '<div class="info-row"><span class="label">项目名称</span><span class="value">' + escapeHtml(r.projectName) + '</span></div>' +
+      '<div class="info-row"><span class="label">作业地点</span><span class="value">' + escapeHtml(r.location) + '</span></div>' +
+      '<div class="info-row"><span class="label">作业内容</span><span class="value">' + escapeHtml(r.workContent) + '</span></div>' +
+      '<div class="info-row"><span class="label">作业时间</span><span class="value">' + formatDate(r.startTime) + ' ~ ' + formatDate(r.endTime) + '</span></div>' +
+      '<div class="info-row"><span class="label">作业人数</span><span class="value">' + r.workerCount + '人</span></div>' +
+      '<div class="info-row"><span class="label">承包方</span><span class="value">' + escapeHtml(r.contractorType) + ' · ' + escapeHtml(r.contractorName) + '</span></div>' +
+      '<div class="info-row"><span class="label">申请人</span><span class="value">' + escapeHtml(r.applicantName) + ' ' + escapeHtml(r.applicantPhone) + '</span></div>' +
+    '</div>';
+
+    // Approval flow
+    html += '<div class="info-section"><h3>审批流程</h3><div class="approval-flow">';
+    var steps = [
+      { title: '项目总审批', status: '待项目总审批', approved: '项目总已批/待大区审批' },
+      { title: '大区安全负责人审批', status: '项目总已批/待大区审批', approved: '大区已批/作业进行中' }
+    ];
+    steps.forEach(function(step, idx) {
+      var dotClass = '';
+      var detail = '';
+      if (r.status === '已驳回' && r.approvals.some(function(a) { return a.level === step.title.replace('审批',''); })) {
+        var rej = r.approvals.filter(function(a) { return a.level === step.title.replace('审批',''); })[0];
+        if (rej && rej.action === 'reject') {
+          dotClass = 'rejected';
+          detail = rej.name + ' · 驳回 · ' + formatDate(rej.time) + (rej.reason ? '：' + escapeHtml(rej.reason) : '');
+        }
+      } else if (r.approvals.some(function(a) { return a.level === step.title.replace('审批','') && a.action === 'approve'; })) {
+        dotClass = 'done';
+        var ap = r.approvals.filter(function(a) { return a.level === step.title.replace('审批','') && a.action === 'approve'; })[0];
+        detail = ap.name + ' · ' + ap.title + ' · ' + formatDate(ap.time);
+      } else if (r.status === step.status) {
+        dotClass = 'current';
+        detail = '等待审批';
+      }
+      html += '<div class="flow-step">' +
+        '<div class="flow-dot ' + dotClass + '">' + (dotClass === 'done' ? '✓' : dotClass === 'rejected' ? '✗' : (idx + 1)) + '</div>' +
+        '<div class="flow-info"><div class="flow-title">' + step.title + '</div>' +
+        '<div class="flow-detail">' + (detail || '—') + '</div></div>' +
+      '</div>';
+    });
+    html += '</div></div>';
+
+    // Checklist
+    if (canApprove) {
+      html += '<div class="info-section"><h3>前置确认（7项全部勾选方可批准）</h3>';
+      checklistLabels.forEach(function(label, idx) {
+        html += '<div class="checklist-item">' +
+          '<input type="checkbox" id="chk_' + idx + '" ' + (r.checklist[idx] ? 'checked' : '') + ' onchange="updateChecklist(\'' + id + '\',' + idx + ',this.checked)">' +
+          '<span class="check-text">' + label + '</span>' +
+        '</div>';
+      });
+      html += '</div>';
+
+      // Approval action
+      html += '<div class="info-section"><h3>审批操作</h3>' +
+        '<div class="form-group"><label>审批人姓名 <span class="required">*</span></label>' +
+          '<input type="text" id="approverName" placeholder="请输入姓名"></div>' +
+        '<div class="form-group"><label>职务 <span class="required">*</span></label>' +
+          '<input type="text" id="approverTitle" placeholder="' + approvalTitle + '" value="' + approvalTitle + '"></div>' +
+        '<div style="display:flex;gap:10px;margin-top:12px;">' +
+          '<button class="btn btn-success" style="flex:1;" onclick="doApprove(\'' + id + '\')">✓ 批准</button>' +
+          '<button class="btn btn-danger" style="flex:1;" onclick="showRejectModal(\'' + id + '\')">✗ 驳回</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    document.getElementById('approvalDetailBody').innerHTML = html;
+    document.getElementById('approvalDetail').classList.add('show');
+  };
+
+  window.updateChecklist = function(id, idx, checked) {
+    var records = loadRecords();
+    var r = records.find(function(rec) { return rec.id === id; });
+    if (r) {
+      r.checklist[idx] = checked;
+      saveRecords(records);
+    }
+  };
+
+  window.doApprove = function(id) {
+    var name = document.getElementById('approverName').value.trim();
+    var title = document.getElementById('approverTitle').value.trim();
+    if (!name) { showToast('请输入审批人姓名'); return; }
+    if (!title) { showToast('请输入职务'); return; }
+
+    var records = loadRecords();
+    var r = records.find(function(rec) { return rec.id === id; });
+    if (!r) return;
+
+    // Check all checklist items
+    var allChecked = r.checklist.every(function(c) { return c === true; });
+    if (!allChecked) { showToast('请先完成7项前置确认'); return; }
+
+    var isProjectPending = r.status === '待项目总审批';
+    var level = isProjectPending ? '项目总' : '大区安全负责人';
+    var newStatus = isProjectPending ? '项目总已批/待大区审批' : '大区已批/作业进行中';
+
+    r.approvals.push({
+      level: level,
+      action: 'approve',
+      name: name,
+      title: title,
+      time: new Date().toISOString(),
+      reason: ''
+    });
+    r.status = newStatus;
+    saveRecords(records);
+
+    showToast('审批已通过');
+    closeDetail('approvalDetail');
+    renderApproveList();
+  };
+
+  var currentRejectId = null;
+
+  window.showRejectModal = function(id) {
+    currentRejectId = id;
+    document.getElementById('rejectReason').value = '';
+    document.getElementById('rejectModal').classList.add('show');
+  };
+
+  window.closeRejectModal = function() {
+    document.getElementById('rejectModal').classList.remove('show');
+    currentRejectId = null;
+  };
+
+  window.confirmReject = function() {
+    var reason = document.getElementById('rejectReason').value.trim();
+    if (!reason) { showToast('请输入驳回原因'); return; }
+
+    var records = loadRecords();
+    var r = records.find(function(rec) { return rec.id === currentRejectId; });
+    if (!r) return;
+
+    var isProjectPending = r.status === '待项目总审批';
+    var level = isProjectPending ? '项目总' : '大区安全负责人';
+
+    r.approvals.push({
+      level: level,
+      action: 'reject',
+      name: '-',
+      title: '-',
+      time: new Date().toISOString(),
+      reason: reason
+    });
+    r.status = '已驳回';
+    saveRecords(records);
+
+    closeRejectModal();
+    showToast('已驳回');
+    closeDetail('approvalDetail');
+    renderApproveList();
+  };
+
+  window.closeDetail = function(id) {
+    document.getElementById(id).classList.remove('show');
+  };
+
+  // ===== Tab 3: 完成确认 =====
+  function renderCompleteList() {
+    var records = loadRecords();
+    var active = records.filter(function(r) {
+      return r.status === '大区已批/作业进行中';
+    });
+    var container = document.getElementById('completeList');
+
+    if (active.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div class="text">暂无进行中的作业</div></div>';
+      return;
+    }
+
+    var html = '';
+    active.forEach(function(r) {
+      html += '<div class="record-card" onclick="openCompletionDetail(\'' + r.id + '\')">' +
+        '<div class="record-header">' +
+          '<div class="record-title">' + escapeHtml(r.projectName) + '</div>' +
+          '<span class="status-tag region-approved">进行中</span>' +
+        '</div>' +
+        '<div class="record-meta">' +
+          '作业地点：' + escapeHtml(r.location) + '<br>' +
+          '申请人：' + escapeHtml(r.applicantName) + ' · ' + formatDate(r.startTime) +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  window.openCompletionDetail = function(id) {
+    var records = loadRecords();
+    var r = records.find(function(rec) { return rec.id === id; });
+    if (!r) return;
+
+    var confirmLabels = [
+      '作业人员全部安全出离',
+      '作业设备和工具全部带离',
+      '有限空间出入口已关闭',
+      '作业前隔离措施已解除'
+    ];
+
+    var initConfirmations = (r.completion && r.completion.confirmations) || [false, false, false, false];
+    var initEndTime = (r.completion && r.completion.actualEndTime) || '';
+
+    var html = '';
+    html += '<div class="info-section"><h3>申请信息</h3>' +
+      '<div class="info-row"><span class="label">记录编号</span><span class="value">' + escapeHtml(r.id) + '</span></div>' +
+      '<div class="info-row"><span class="label">项目名称</span><span class="value">' + escapeHtml(r.projectName) + '</span></div>' +
+      '<div class="info-row"><span class="label">作业地点</span><span class="value">' + escapeHtml(r.location) + '</span></div>' +
+      '<div class="info-row"><span class="label">作业内容</span><span class="value">' + escapeHtml(r.workContent) + '</span></div>' +
+      '<div class="info-row"><span class="label">作业时间</span><span class="value">' + formatDate(r.startTime) + ' ~ ' + formatDate(r.endTime) + '</span></div>' +
+      '<div class="info-row"><span class="label">作业人数</span><span class="value">' + r.workerCount + '人</span></div>' +
+    '</div>';
+
+    html += '<div class="info-section"><h3>完成确认</h3>' +
+      '<div class="form-group"><label>实际结束时间 <span class="required">*</span></label>' +
+        '<input type="datetime-local" id="actualEndTime" value="' + initEndTime + '"></div>';
+
+    confirmLabels.forEach(function(label, idx) {
+      html += '<div class="checklist-item">' +
+        '<input type="checkbox" id="cfm_' + idx + '" ' + (initConfirmations[idx] ? 'checked' : '') + '>' +
+        '<span class="check-text">' + label + '</span>' +
+      '</div>';
+    });
+
+    html += '<div class="form-group" style="margin-top:12px;"><label>确认人姓名 <span class="required">*</span></label>' +
+      '<input type="text" id="confirmerName" placeholder="请输入姓名"></div>' +
+    '<button class="btn btn-success btn-full" onclick="doComplete(\'' + id + '\')">确认完成</button>' +
+    '</div>';
+
+    document.getElementById('completionDetailBody').innerHTML = html;
+    document.getElementById('completionDetail').classList.add('show');
+  };
+
+  window.doComplete = function(id) {
+    var endTime = document.getElementById('actualEndTime').value;
+    var confirmer = document.getElementById('confirmerName').value.trim();
+    if (!endTime) { showToast('请选择实际结束时间'); return; }
+    if (!confirmer) { showToast('请输入确认人姓名'); return; }
+
+    var confirmations = [];
+    for (var i = 0; i < 4; i++) {
+      confirmations.push(document.getElementById('cfm_' + i).checked);
+    }
+    var allChecked = confirmations.every(function(c) { return c === true; });
+    if (!allChecked) { showToast('请完成所有确认项'); return; }
+
+    var records = loadRecords();
+    var r = records.find(function(rec) { return rec.id === id; });
+    if (!r) return;
+
+    r.completion = {
+      actualEndTime: endTime,
+      confirmations: confirmations,
+      confirmerName: confirmer,
+      confirmedAt: new Date().toISOString()
+    };
+    r.status = '作业完成';
+    saveRecords(records);
+
+    showToast('已完成确认');
+    closeDetail('completionDetail');
+    renderCompleteList();
+  };
+
+  // ===== Tab 4: 审批台账 =====
+  function renderLedger() {
+    var records = loadRecords();
+    var regionFilter = document.getElementById('filterRegion').value;
+    var statusFilter = document.getElementById('filterStatus').value;
+
+    var filtered = records.filter(function(r) {
+      if (regionFilter && r.region !== regionFilter) return false;
+      if (statusFilter && r.status !== statusFilter) return false;
+      return true;
+    });
+
+    // Sort by createdAt desc
+    filtered.sort(function(a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+
+    var container = document.getElementById('ledgerList');
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div class="text">暂无记录</div></div>';
+      return;
+    }
+
+    var html = '';
+    filtered.forEach(function(r) {
+      html += '<div class="record-card" onclick="openApprovalDetail(\'' + r.id + '\')">' +
+        '<div class="record-header">' +
+          '<div class="record-title">' + escapeHtml(r.projectName) + '</div>' +
+          '<span class="status-tag ' + statusClass(r.status) + '">' + r.status + '</span>' +
+        '</div>' +
+        '<div class="record-meta">' +
+          escapeHtml(r.location) + ' · ' + escapeHtml(r.applicantName) + '<br>' +
+          formatDate(r.createdAt) +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  document.getElementById('filterRegion').addEventListener('change', renderLedger);
+  document.getElementById('filterStatus').addEventListener('change', renderLedger);
+
+  // ===== Data Export/Import =====
+  window.exportData = function() {
+    var records = loadRecords();
+    var checkins = JSON.parse(localStorage.getItem('confined_space_checkins') || '[]');
+    var data = {
+      confined_space_records: records,
+      confined_space_checkins: checkins,
+      exportTime: new Date().toISOString()
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '有限空间作业数据_' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('数据已导出');
+  };
+
+  window.importData = function(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        var importedRecords = data.confined_space_records || [];
+        var importedCheckins = data.confined_space_checkins || [];
+
+        // Merge records (same ID = overwrite)
+        var existingRecords = loadRecords();
+        var recordMap = {};
+        existingRecords.forEach(function(r) { recordMap[r.id] = r; });
+        importedRecords.forEach(function(r) { recordMap[r.id] = r; });
+        var mergedRecords = Object.values(recordMap);
+        saveRecords(mergedRecords);
+
+        // Merge checkins
+        var existingCheckins = JSON.parse(localStorage.getItem('confined_space_checkins') || '[]');
+        var checkinMap = {};
+        existingCheckins.forEach(function(c) { checkinMap[c.id] = c; });
+        importedCheckins.forEach(function(c) { checkinMap[c.id] = c; });
+        localStorage.setItem('confined_space_checkins', JSON.stringify(Object.values(checkinMap)));
+
+        showToast('数据导入成功（' + importedRecords.length + '条审批，' + importedCheckins.length + '条进场）');
+        renderApproveList();
+        renderCompleteList();
+        renderLedger();
+      } catch(err) {
+        showToast('导入失败：文件格式不正确');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  // ===== Utilities =====
+  function escapeHtml(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // Initial render
+  renderApproveList();
+  renderCompleteList();
+  renderLedger();
+})();
+</script>
+</body>
+</html>
